@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MDSL - D2C Promo Plan</title>
+<title>MDSL-D2C Promo Plan</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -611,8 +611,8 @@ const SHARED_COLORS = [
 let state = {
   year:  new Date().getFullYear(),
   month: new Date().getMonth(),
-  chips:  [],   // { id, day, endDay, text, color, type }
-  events: []    // { id, color, title, period, purpose, target, detail, refHtml }
+  chips:  [],   // { id, year, month, day, endDay, text, color, type }
+  events: []    // { id, year, month, color, title, period, purpose, target, detail, refHtml }
 };
 
 let chipModalDay     = null;
@@ -637,9 +637,9 @@ function init() {
     if (y === cy) o.selected = true;
     yearSel.appendChild(o);
   }
-  yearSel.addEventListener('change', () => { state.year = +yearSel.value; renderCalendar(); scheduleSave(); });
+  yearSel.addEventListener('change', () => { state.year = +yearSel.value; renderCalendar(); renderEvents(); scheduleSave(); });
   document.getElementById('monthSel').addEventListener('change', e => {
-    state.month = +e.target.value; renderCalendar(); scheduleSave();
+    state.month = +e.target.value; renderCalendar(); renderEvents(); scheduleSave();
   });
 
   loadData();
@@ -705,10 +705,7 @@ function renderCalendar() {
 
     // chips — 현재 연·월에 해당하는 것만 표시
     state.chips.forEach(chip => {
-      // 기존 데이터 하위호환: year/month 없는 chip은 현재 달에만 표시
-      const chipYear  = chip.year  != null ? chip.year  : state.year;
-      const chipMonth = chip.month != null ? chip.month : state.month;
-      if (chipYear !== state.year || chipMonth !== state.month) return;
+      if (chip.year !== state.year || chip.month !== state.month) return;
 
       const s = chip.day, e = chip.endDay || chip.day;
       if (d < s || d > e) return;
@@ -772,11 +769,7 @@ function renderLegend() {
 
   const seen = {};
   state.chips.forEach(c => {
-    // 현재 연·월 chip만 범례에 표시
-    const chipYear  = c.year  != null ? c.year  : state.year;
-    const chipMonth = c.month != null ? c.month : state.month;
-    if (chipYear !== state.year || chipMonth !== state.month) return;
-
+    if (c.year !== state.year || c.month !== state.month) return;
     const key = c.text + '|' + c.type;
     if (seen[key]) return;
     seen[key] = true;
@@ -984,7 +977,13 @@ function deleteEditingChip() {
 function renderEvents() {
   const list = document.getElementById('eventsGrid');
   list.innerHTML = '';
-  state.events.forEach((ev, idx) => list.appendChild(createEventCard(ev, idx)));
+
+  // 현재 연·월에 해당하는 이벤트만 표시
+  const filtered = state.events.filter(ev =>
+    ev.year === state.year && ev.month === state.month
+  );
+
+  filtered.forEach((ev, idx) => list.appendChild(createEventCard(ev, idx)));
 
   const addCard = document.createElement('div');
   addCard.className = 'add-event-card';
@@ -1089,9 +1088,26 @@ function createEventCard(ev, idx) {
     colorWrap.appendChild(sw);
   });
 
-  // delete
-  card.querySelector('.event-del-btn').addEventListener('click', () => {
-    if (confirm('이 이벤트를 삭제할까요?')) {
+  // delete — 2단계 확인 (confirm()은 sandbox 환경에서 동작 안 함)
+  const delBtn = card.querySelector('.event-del-btn');
+  let delPending = false;
+  delBtn.addEventListener('click', () => {
+    if (!delPending) {
+      delPending = true;
+      delBtn.textContent = '삭제?';
+      delBtn.style.background = '#c83030';
+      delBtn.style.color = '#fff';
+      delBtn.style.borderColor = '#c83030';
+      setTimeout(() => {
+        if (delPending) {
+          delPending = false;
+          delBtn.textContent = '✕';
+          delBtn.style.background = '';
+          delBtn.style.color = '';
+          delBtn.style.borderColor = '';
+        }
+      }, 3000);
+    } else {
       state.events = state.events.filter(e => e.id !== ev.id);
       renderEvents(); scheduleSave();
     }
@@ -1229,7 +1245,9 @@ function handleGlobalPaste(e) {
 function addEvent() {
   const newEv = {
     id: Date.now(),
-    color: SHARED_COLORS[state.events.length % SHARED_COLORS.length],
+    year: state.year,
+    month: state.month,
+    color: SHARED_COLORS[state.events.filter(e => e.year === state.year && e.month === state.month).length % SHARED_COLORS.length],
     title: '', period: '', purpose: '', target: '', detail: '', refHtml: ''
   };
   state.events.push(newEv);
@@ -1262,12 +1280,25 @@ function saveData() {
 
 function loadData() {
   if (location.hash && location.hash.length > 1) {
-    try { state = JSON.parse(decodeURIComponent(atob(location.hash.slice(1)))); return; } catch(e) {}
+    try { state = JSON.parse(decodeURIComponent(atob(location.hash.slice(1)))); migrateData(); return; } catch(e) {}
   }
   try {
     const s = localStorage.getItem('promoplan_v2');
-    if (s) state = JSON.parse(s);
+    if (s) { state = JSON.parse(s); migrateData(); }
   } catch(e) {}
+}
+
+// 기존 데이터(year/month 없는 것)에 현재 연·월을 부여해 마이그레이션
+function migrateData() {
+  const y = state.year, m = state.month;
+  state.chips.forEach(c => {
+    if (c.year  == null) c.year  = y;
+    if (c.month == null) c.month = m;
+  });
+  state.events.forEach(ev => {
+    if (ev.year  == null) ev.year  = y;
+    if (ev.month == null) ev.month = m;
+  });
 }
 
 function clearAll() {
