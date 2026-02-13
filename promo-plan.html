@@ -703,8 +703,13 @@ function renderCalendar() {
     const evtWrap = document.createElement('div');
     evtWrap.className = 'cal-events';
 
-    // chips
+    // chips — 현재 연·월에 해당하는 것만 표시
     state.chips.forEach(chip => {
+      // 기존 데이터 하위호환: year/month 없는 chip은 현재 달에만 표시
+      const chipYear  = chip.year  != null ? chip.year  : state.year;
+      const chipMonth = chip.month != null ? chip.month : state.month;
+      if (chipYear !== state.year || chipMonth !== state.month) return;
+
       const s = chip.day, e = chip.endDay || chip.day;
       if (d < s || d > e) return;
 
@@ -767,6 +772,11 @@ function renderLegend() {
 
   const seen = {};
   state.chips.forEach(c => {
+    // 현재 연·월 chip만 범례에 표시
+    const chipYear  = c.year  != null ? c.year  : state.year;
+    const chipMonth = c.month != null ? c.month : state.month;
+    if (chipYear !== state.year || chipMonth !== state.month) return;
+
     const key = c.text + '|' + c.type;
     if (seen[key]) return;
     seen[key] = true;
@@ -836,7 +846,13 @@ function confirmChip() {
   const type  = document.querySelector('input[name="chipType"]:checked').value;
   const start = +document.getElementById('chipStartDay').value || chipModalDay;
   const end   = Math.max(start, +document.getElementById('chipEndDay').value || start);
-  state.chips.push({ id: Date.now(), day: start, endDay: end, text, color: chipColorSelected, type });
+  state.chips.push({
+    id: Date.now(),
+    year: state.year,
+    month: state.month,
+    day: start, endDay: end,
+    text, color: chipColorSelected, type
+  });
   closeChipModal();
   renderCalendar();
   scheduleSave();
@@ -917,11 +933,14 @@ function confirmEditChip() {
 
   const chip = state.chips.find(c => c.id === editingChipId);
   if (chip) {
-    chip.text     = text;
-    chip.type     = type;
-    chip.color    = editChipColorSelected;
-    chip.day      = start;
-    chip.endDay   = end;
+    chip.text   = text;
+    chip.type   = type;
+    chip.color  = editChipColorSelected;
+    chip.day    = start;
+    chip.endDay = end;
+    // year/month 보존 (없으면 현재 달로 세팅)
+    if (chip.year  == null) chip.year  = state.year;
+    if (chip.month == null) chip.month = state.month;
   }
   closeChipEditModal();
   renderCalendar();
