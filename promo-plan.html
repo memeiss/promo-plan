@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -124,6 +125,11 @@
     font-size: 9px; padding: 1px 6px; border-radius: 3px;
     border: 1.5px dashed #c87a9a; color: #c87a9a; font-weight: 500;
   }
+  .legend-chip-crm {
+    font-size: 9px; padding: 1px 6px; border-radius: 3px;
+    border: 1.5px solid #8a7ec8; color: #8a7ec8; font-weight: 600;
+    background: repeating-linear-gradient(45deg,#8a7ec830,#8a7ec830 2px,transparent 2px,transparent 5px);
+  }
 
   .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
 
@@ -189,6 +195,13 @@
     border-style: dashed;
     font-weight: 400;
   }
+  /* CRM: 실선 테두리 + 연한 줄무늬 배경 */
+  .type-crm {
+    border-width: 1.5px;
+    border-style: solid;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
 
   /* add chip btn */
   .add-event-btn {
@@ -214,10 +227,10 @@
   .event-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.09); }
   .event-card-top { height: 5px; }
 
-  /* 2단 내부 레이아웃 */
+  /* 2단 내부 레이아웃 — 오른쪽(레퍼런스) 더 넓게 */
   .event-card-inner {
     display: grid;
-    grid-template-columns: 1fr 420px;
+    grid-template-columns: 480px 1fr;
   }
   @media(max-width:1060px) { .event-card-inner { grid-template-columns: 1fr; } }
 
@@ -277,7 +290,7 @@
     outline: none; transition: border-color 0.2s, background 0.2s;
   }
   .field-input { padding: 10px 14px; }
-  .field-textarea { padding: 12px 14px; resize: vertical; min-height: 90px; line-height: 1.7; }
+  .field-textarea { padding: 12px 14px; resize: none; min-height: 90px; line-height: 1.7; overflow: hidden; }
   .field-input:focus, .field-textarea:focus { border-color: var(--accent); background: #fff; }
   .field-input::placeholder, .field-textarea::placeholder { color: var(--text-light); }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -433,6 +446,7 @@
     <div class="save-status">
       <div class="save-dot" id="saveDot"></div>
       <span id="saveLabel">저장됨</span>
+      <span id="saveTime" style="color:var(--text-light);font-size:11px"></span>
     </div>
   </div>
   <div class="topbar-right">
@@ -466,6 +480,8 @@
           <span class="legend-chip-ev">이벤트</span> 채운 배경
           &nbsp;
           <span class="legend-chip-ig">📷 인스타그램</span> 점선 테두리
+          &nbsp;
+          <span class="legend-chip-crm">💌 CRM</span> 줄무늬 실선
         </div>
       </div>
     </div>
@@ -495,6 +511,8 @@
         <label for="typeEvent">🎯 이벤트</label>
         <input type="radio" name="chipType" id="typeIG" value="ig">
         <label for="typeIG">📷 인스타그램</label>
+        <input type="radio" name="chipType" id="typeCRM" value="crm">
+        <label for="typeCRM">💌 CRM</label>
       </div>
     </div>
 
@@ -507,9 +525,10 @@
       <label class="field-label">색상 선택</label>
       <div class="color-picker-row" id="chipColorPicker"></div>
       <div class="color-note" id="colorNote">
-        <span>선택한 색상은 이벤트·인스타그램 동일 적용 |</span>
-        <span class="color-note-chip" id="previewEv" style="background:rgba(232,132,90,0.2);color:#c06030">이벤트 채운 배경</span>
+        <span>동일 색상, 모양으로 구분 |</span>
+        <span class="color-note-chip" id="previewEv" style="background:rgba(232,132,90,0.2);color:#c06030">이벤트 채운배경</span>
         <span class="color-note-chip" id="previewIg" style="border:1.5px dashed #e8845a;color:#e8845a">인스타그램 점선</span>
+        <span class="color-note-chip" id="previewCrm" style="border:1.5px solid #e8845a;color:#e8845a;font-weight:600">CRM 실선</span>
       </div>
     </div>
 
@@ -530,6 +549,51 @@
 
 <!-- Hidden file input -->
 <input type="file" id="imgFileInput" accept="image/*" style="display:none">
+
+<!-- Chip Edit Modal -->
+<div class="modal-overlay" id="chipEditModal">
+  <div class="modal">
+    <div class="modal-title">일정 수정</div>
+
+    <div class="field-group">
+      <label class="field-label">일정 종류</label>
+      <div class="type-toggle">
+        <input type="radio" name="editChipType" id="editTypeEvent" value="event" checked>
+        <label for="editTypeEvent">🎯 이벤트</label>
+        <input type="radio" name="editChipType" id="editTypeIG" value="ig">
+        <label for="editTypeIG">📷 인스타그램</label>
+        <input type="radio" name="editChipType" id="editTypeCRM" value="crm">
+        <label for="editTypeCRM">💌 CRM</label>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">내용</label>
+      <input class="field-input" id="editChipText" placeholder="일정 내용을 입력하세요">
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">색상 선택</label>
+      <div class="color-picker-row" id="editChipColorPicker"></div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">기간 (시작일 ~ 종료일)</label>
+      <div class="field-row">
+        <input class="field-input" type="number" id="editChipStartDay" placeholder="시작일" min="1" max="31">
+        <input class="field-input" type="number" id="editChipEndDay" placeholder="종료일" min="1" max="31">
+      </div>
+    </div>
+
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn" id="chipDelBtn" style="background:#ffeaea;border:1px solid #e8a0a0;color:#c83030" onclick="deleteEditingChip()">🗑 삭제</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline" onclick="closeChipEditModal()">취소</button>
+        <button class="btn btn-primary" onclick="confirmEditChip()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="page-footer">
   PROMO PLAN &nbsp;·&nbsp; 데이터는 URL에 인코딩됩니다 &nbsp;·&nbsp; 저장 후 공유 링크를 복사해 팀원에게 전달하세요
@@ -653,24 +717,32 @@ function renderCalendar() {
         el.style.color        = chip.color;
         el.style.borderLeft   = d === s ? `3px solid ${chip.color}` : '3px solid transparent';
         el.style.borderRadius = d === s ? '4px 2px 2px 4px' : d === e ? '2px 4px 4px 2px' : '2px';
+      } else if (chip.type === 'crm') {
+        // 실선 테두리 + 줄무늬 배경
+        el.style.borderColor  = chip.color;
+        el.style.color        = chip.color;
+        el.style.background   = `repeating-linear-gradient(45deg, ${chip.color}18, ${chip.color}18 3px, transparent 3px, transparent 7px)`;
+        el.style.borderRadius = d === s ? '4px 2px 2px 4px' : d === e ? '2px 4px 4px 2px' : '2px';
       } else {
-        // 점선 테두리
+        // 점선 테두리 (인스타그램)
         el.style.borderColor  = chip.color;
         el.style.color        = chip.color;
         el.style.borderRadius = d === s ? '4px 2px 2px 4px' : d === e ? '2px 4px 4px 2px' : '2px';
       }
 
-      // 시작일에만 텍스트, 이후는 이모지(ig) 또는 빈 줄(event)
+      // 시작일에만 텍스트, 이후는 타입별 아이콘 또는 빈 bar
       if (d === s) {
         el.textContent = chip.text;
       } else {
-        // 기간 중간/끝 — 얇은 bar 유지 (빈 텍스트로 높이 차지)
-        el.textContent = chip.type === 'ig' ? '📷' : '';
+        if (chip.type === 'ig')       el.textContent = '📷';
+        else if (chip.type === 'crm') el.textContent = '💌';
+        else                          el.textContent = '';
         el.style.minHeight = '18px';
       }
 
-      el.title = chip.text + (chip.type==='ig' ? ' [인스타그램]' : ' [이벤트]') + ' — 더블클릭으로 삭제';
-      el.addEventListener('dblclick', () => removeChip(chip.id));
+      const typeLabel = chip.type === 'ig' ? ' [인스타그램]' : chip.type === 'crm' ? ' [CRM]' : ' [이벤트]';
+      el.title = chip.text + typeLabel + ' — 클릭하여 수정/삭제';
+      el.addEventListener('click', (e) => { e.stopPropagation(); openChipEditModal(chip.id); });
       evtWrap.appendChild(el);
     });
 
@@ -691,7 +763,6 @@ function renderCalendar() {
 
 function renderLegend() {
   const leg = document.getElementById('calLegend');
-  // remove old dynamic items
   leg.querySelectorAll('.dyn-leg').forEach(e => e.remove());
 
   const seen = {};
@@ -701,9 +772,21 @@ function renderLegend() {
     seen[key] = true;
     const item = document.createElement('div');
     item.className = 'cal-legend-item dyn-leg';
-    item.innerHTML = `<div class="legend-dot" style="background:${c.color}${c.type==='ig'?';border:1.5px dashed '+c.color+';background:transparent':''}"></div>
-      <span>${c.type==='ig'?'📷 ':''} ${c.text}</span>`;
-    if (c.type==='ig') item.querySelector('.legend-dot').style.cssText = `width:10px;height:10px;border-radius:3px;border:1.5px dashed ${c.color};background:transparent;flex-shrink:0`;
+    const dot = document.createElement('div');
+    dot.className = 'legend-dot';
+
+    if (c.type === 'ig') {
+      dot.style.cssText = `width:10px;height:10px;border-radius:3px;border:1.5px dashed ${c.color};background:transparent;flex-shrink:0`;
+    } else if (c.type === 'crm') {
+      dot.style.cssText = `width:10px;height:10px;border-radius:3px;border:1.5px solid ${c.color};background:repeating-linear-gradient(45deg,${c.color}30,${c.color}30 2px,transparent 2px,transparent 5px);flex-shrink:0`;
+    } else {
+      dot.style.cssText = `width:10px;height:10px;border-radius:3px;background:${c.color}44;border-left:3px solid ${c.color};flex-shrink:0`;
+    }
+
+    const label = c.type === 'ig' ? '📷 ' : c.type === 'crm' ? '💌 ' : '';
+    item.appendChild(dot);
+    item.innerHTML += `<span>${label}${c.text}</span>`;
+    item.insertBefore(dot, item.firstChild);
     leg.appendChild(item);
   });
 }
@@ -739,8 +822,9 @@ function renderChipColorPicker() {
       sw.classList.add('active');
       chipColorSelected = c;
       // update preview chips in modal
-      document.getElementById('previewEv').style.cssText = `padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${c}28;color:${c}`;
-      document.getElementById('previewIg').style.cssText = `padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;border:1.5px dashed ${c};color:${c}`;
+      document.getElementById('previewEv').style.cssText  = `padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${c}28;color:${c}`;
+      document.getElementById('previewIg').style.cssText  = `padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;border:1.5px dashed ${c};color:${c}`;
+      document.getElementById('previewCrm').style.cssText = `padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;border:1.5px solid ${c};color:${c}`;
     });
     wrap.appendChild(sw);
   });
@@ -759,9 +843,120 @@ function confirmChip() {
 }
 
 function removeChip(id) {
-  if (!confirm('이 일정을 삭제할까요?')) return;
   state.chips = state.chips.filter(c => c.id !== id);
   renderCalendar(); scheduleSave();
+}
+
+// ─────────────────────────────
+//   Chip Edit Modal
+// ─────────────────────────────
+let editingChipId = null;
+let editChipColorSelected = SHARED_COLORS[0];
+
+function openChipEditModal(chipId) {
+  const chip = state.chips.find(c => c.id === chipId);
+  if (!chip) return;
+  editingChipId = chipId;
+  editChipColorSelected = chip.color;
+
+  document.getElementById('editChipText').value = chip.text;
+  document.getElementById('editChipStartDay').value = chip.day;
+  document.getElementById('editChipEndDay').value = chip.endDay || chip.day;
+
+  // type radio
+  if (chip.type === 'ig') {
+    document.getElementById('editTypeIG').checked = true;
+  } else if (chip.type === 'crm') {
+    document.getElementById('editTypeCRM').checked = true;
+  } else {
+    document.getElementById('editTypeEvent').checked = true;
+  }
+
+  // color picker
+  renderEditChipColorPicker(chip.color);
+
+  document.getElementById('chipEditModal').classList.add('show');
+  setTimeout(() => document.getElementById('editChipText').focus(), 120);
+}
+
+function closeChipEditModal() {
+  document.getElementById('chipEditModal').classList.remove('show');
+  editingChipId = null;
+  chipDelConfirmPending = false;
+  const btn = document.getElementById('chipDelBtn');
+  if (btn) {
+    btn.textContent = '🗑 삭제';
+    btn.style.background = '#ffeaea';
+    btn.style.color = '#c83030';
+    btn.style.borderColor = '#e8a0a0';
+  }
+}
+
+function renderEditChipColorPicker(selectedColor) {
+  const wrap = document.getElementById('editChipColorPicker');
+  wrap.innerHTML = '';
+  SHARED_COLORS.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (c === selectedColor ? ' active' : '');
+    sw.style.background = c;
+    sw.addEventListener('click', () => {
+      wrap.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      editChipColorSelected = c;
+    });
+    wrap.appendChild(sw);
+  });
+}
+
+function confirmEditChip() {
+  const text = document.getElementById('editChipText').value.trim();
+  if (!text) { document.getElementById('editChipText').focus(); return; }
+  const type  = document.querySelector('input[name="editChipType"]:checked').value;
+  const start = +document.getElementById('editChipStartDay').value;
+  const end   = Math.max(start, +document.getElementById('editChipEndDay').value || start);
+
+  const chip = state.chips.find(c => c.id === editingChipId);
+  if (chip) {
+    chip.text     = text;
+    chip.type     = type;
+    chip.color    = editChipColorSelected;
+    chip.day      = start;
+    chip.endDay   = end;
+  }
+  closeChipEditModal();
+  renderCalendar();
+  scheduleSave();
+}
+
+let chipDelConfirmPending = false;
+
+function deleteEditingChip() {
+  if (!editingChipId) return;
+  const btn = document.getElementById('chipDelBtn');
+  if (!chipDelConfirmPending) {
+    // first click — ask for confirmation via button text change
+    chipDelConfirmPending = true;
+    btn.textContent = '정말 삭제할까요?';
+    btn.style.background = '#c83030';
+    btn.style.color = '#fff';
+    btn.style.borderColor = '#c83030';
+    setTimeout(() => {
+      // auto-reset after 3s if not clicked again
+      if (chipDelConfirmPending) {
+        chipDelConfirmPending = false;
+        btn.textContent = '🗑 삭제';
+        btn.style.background = '#ffeaea';
+        btn.style.color = '#c83030';
+        btn.style.borderColor = '#e8a0a0';
+      }
+    }, 3000);
+    return;
+  }
+  // second click — actually delete
+  chipDelConfirmPending = false;
+  const idToDelete = editingChipId;
+  closeChipEditModal();
+  setTimeout(() => { removeChip(idToDelete); }, 50);
 }
 
 // ─────────────────────────────
@@ -883,9 +1078,24 @@ function createEventCard(ev, idx) {
     }
   });
 
-  // text fields
+  // text fields + auto-grow textarea
   card.querySelectorAll('[data-field]').forEach(el => {
-    el.addEventListener('input', () => { ev[el.dataset.field] = el.value; scheduleSave(); });
+    el.addEventListener('input', () => {
+      ev[el.dataset.field] = el.value;
+      // auto-grow for textarea
+      if (el.tagName === 'TEXTAREA') {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      }
+      scheduleSave();
+    });
+    // init height on load
+    if (el.tagName === 'TEXTAREA' && el.value) {
+      requestAnimationFrame(() => {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      });
+    }
   });
 
   // ref editor
@@ -1024,6 +1234,10 @@ function scheduleSave() {
 function saveData() {
   document.getElementById('saveDot').classList.remove('saving');
   document.getElementById('saveLabel').textContent = '저장됨';
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const ts = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById('saveTime').textContent = ts;
   try { localStorage.setItem('promoplan_v2', JSON.stringify(state)); } catch(e) {}
 }
 
