@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MDSL - D2C Promo Plan</title></title>
+<title>MDSL - D2C Promo Plan</title>
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -1330,7 +1330,7 @@ function scheduleSave() {
   document.getElementById('saveDot').classList.add('saving');
   document.getElementById('saveLabel').textContent = '저장 중...';
   clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveData, 5000);
+  saveTimeout = setTimeout(saveData, 5000); // 3초로 변경 (타이핑 중 저장 부담 감소)
 }
 
 async function saveData() {
@@ -1380,22 +1380,18 @@ async function loadData() {
       state.chips = data.chips || [];
       state.events = data.events || [];
       migrateData();
-      console.log('Firebase에서 데이터 로드 완료');
+      console.log('Firebase에서 데이터 로드 완료:', docId);
     } else {
-      // 문서가 없으면 로컬스토리지 확인
-      const s = localStorage.getItem('promoplan_v2');
-      if (s) {
-        state = JSON.parse(s);
-        migrateData();
-      }
+      // 문서가 없으면 빈 상태로 초기화
+      state.chips = [];
+      state.events = [];
+      console.log('새 문서 (데이터 없음):', docId);
     }
   } catch(e) {
     console.error('Firebase 로드 오류:', e);
-    // 로컬스토리지 폴백
-    try {
-      const s = localStorage.getItem('promoplan_v2');
-      if (s) { state = JSON.parse(s); migrateData(); }
-    } catch(e2) {}
+    // 오류 발생 시에도 빈 상태로
+    state.chips = [];
+    state.events = [];
   }
 }
 
