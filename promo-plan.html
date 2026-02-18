@@ -1330,7 +1330,7 @@ function scheduleSave() {
   document.getElementById('saveDot').classList.add('saving');
   document.getElementById('saveLabel').textContent = '저장 중...';
   clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveData, 1200);
+  saveTimeout = setTimeout(saveData, 5000);
 }
 
 async function saveData() {
