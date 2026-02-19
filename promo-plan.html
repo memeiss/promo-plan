@@ -468,9 +468,18 @@
 
 <div class="container">
 
-  <!-- Section 1: Calendar -->
+  <!-- Section 1: Events -->
   <div class="section-header">
     <span class="section-tag">01</span>
+    <h2 class="section-title">이벤트 프로모션 운영 상세안</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="events-list" id="eventsGrid"></div>
+
+  <!-- Section 2: Calendar -->
+  <div class="section-header">
+    <span class="section-tag">02</span>
     <h2 class="section-title">월 프로모션 캘린더</h2>
     <div class="section-divider"></div>
   </div>
@@ -490,15 +499,6 @@
     </div>
     <div class="calendar-grid" id="calGrid"></div>
   </div>
-
-  <!-- Section 2: Events -->
-  <div class="section-header">
-    <span class="section-tag">02</span>
-    <h2 class="section-title">이벤트 프로모션 운영 상세안</h2>
-    <div class="section-divider"></div>
-  </div>
-
-  <div class="events-list" id="eventsGrid"></div>
 
 </div>
 
@@ -1342,7 +1342,7 @@ function scheduleSave() {
   document.getElementById('saveDot').classList.add('saving');
   document.getElementById('saveLabel').textContent = '저장 중...';
   clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveData, 5000); // 5초로 변경 (타이핑 중 저장 부담 감소)
+  saveTimeout = setTimeout(saveData, 3000); // 3초로 변경 (타이핑 중 저장 부담 감소)
 }
 
 async function saveData() {
