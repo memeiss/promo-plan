@@ -1358,14 +1358,23 @@ async function saveData() {
     localStorage.setItem('promoplan_last_ym', JSON.stringify({year: state.year, month: state.month}));
   } catch(e) {}
 
-  // Firebase에 저장
+  // Firebase에 저장 - 현재 보고 있는 달의 데이터만 해당 달 문서에 저장
   try {
     const docId = getDocId();
+    
+    // 🔒 중요: 현재 달에 속한 데이터만 필터링해서 저장
+    const currentMonthChips = state.chips.filter(c => 
+      c.year === state.year && c.month === state.month
+    );
+    const currentMonthEvents = state.events.filter(e => 
+      e.year === state.year && e.month === state.month
+    );
+    
     await db.collection('plans').doc(docId).set({
       year: state.year,
       month: state.month,
-      chips: state.chips,
-      events: state.events,
+      chips: currentMonthChips,
+      events: currentMonthEvents,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     document.getElementById('saveLabel').textContent = '저장됨 ☁️';
